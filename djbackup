@@ -1,0 +1,162 @@
+#!/usr/bin/sh
+. /etc/djbackup/djbackup.conf
+
+
+#Pid File Check
+if [ -f "$pidFile" ]
+then 
+    if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
+    then
+	echo "Backup Already in progress" | tee -a $LogFile
+	exit 1
+    else
+	rm $pidFile
+    fi
+fi
+
+#Email Report start writting out to a temp file to be able to send the report
+if [ "$EmailReport" -eq "1" ]
+then
+	TmpLog=$LogFile
+	LogFile="/tmp/tmp.log"
+fi
+
+#Start of report formating
+echo "*****************************************************************" | tee -a $LogFile
+echo "*****************************************************************" | tee -a $LogFile
+echo "" | tee -a $LogFile
+date | tee -a $LogFile
+echo "" | tee -a $LogFile
+echo "" | tee -a $LogFile
+
+
+#Dropbox check
+if [ "$KillDropbox" -eq "1" ]
+then
+    ps ax |grep ".dropbox-dist/dropbox" |grep -v grep | awk '{print $1}' | xargs -i xxx kill xxx
+    rm -rf $DropboxDir
+fi
+
+#Backup Code started
+echo $$ > $pidFile
+echo "" | tee -a $LogFile
+echo "Output file: " | tee -a $LogFile
+echo "" | tee -a $LogFile
+
+
+#Installed RPM List Generation
+if [ "$RPMBackup" -eq "1" ]
+then
+        rpm -qa > $RPMFile
+fi
+
+
+#MySQL Backup started
+if [ "$MySQLDump" -eq "1" ] 
+then
+    echo "Starting Dump of MySQL Databases..." | tee -a $LogFile
+    mysqldump --user=$MySQLUser --password=$MySQLPassword -A > $MySQLLocation
+    chmod 700 $MySQLLocation
+    echo "Done Dumping MySQL Databases..." | tee -a $LogFile
+    echo "" | tee -a $LogFile
+fi
+
+
+#Cron Backup Started
+if [ "$CronBackup" -eq "1" ]
+then
+    echo "Dumping Cron..." | tee -a $LogFile
+    crontab -l > $CronFile
+    chmod 700 $CronFile
+    echo "Done Dumping Cron..." | tee -a $LogFile
+    echo "" | tee -a $LogFile
+fi
+
+#####################################################
+#####################################################
+#####################################################
+#Do the actual backup
+if [ "$EncryptBackup" -eq "1" ]
+then
+    echo "Backing up $BkDir" | tee -a $LogFile
+    echo $EncryptPassphrase > /etc/djbackup/.encrypt_pass
+    OutFile=$OutFile.gpg
+    tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
+    rm /etc/djbackup/.encrypt_pass
+else
+    tar -czvf $OutDir$OutFile $BkDir | tee -a $LogFile
+fi
+date | tee -a $LogFile
+echo "" | tee -a $LogFile
+rm $pidFile
+#####################################################
+#####################################################
+#####################################################
+
+#Create remote copy
+if [ "$RemoteCopy" -eq "1" ] 
+then
+    echo "Remote Copy Starting..." | tee -a $LogFile
+    su $RemoteUsername -c "rsync -az $OutDir$OutFile $RemoteUsername@$RemoteServer:$RemotePath/$OutFile.tgz" | tee -a $LogFile
+    echo "" | tee -a $LogFile
+fi
+
+
+#Create second local copy
+if [ "$SecondCopy" -eq "1" ]
+then
+    cp -p $OutDir$OutFile $SecondDevice
+    echo "" | tee -a $LogFile
+    echo "Copied $OutDir$OutFile to $SecondDevice." | tee -a $LogFile
+    Count=1
+    echo "" | tee -a $LogFile
+    echo "Cleaning Up Old Second Backups..." | tee -a $LogFile
+    echo "" | tee -a $LogFile
+    echo "Removed the Following Second Backups:" | tee -a $LogFile
+    for file in $(ls -t $SecondDevice | grep -v lost |grep .tgz); do
+	if [ "$Count" -gt "$SecondCopies" ]
+	then
+	    echo $file | tee -a $LogFile
+	    rm -f $SecondDevice/$file | tee -a $LogFile
+	fi
+	let Count++
+    done
+fi
+
+
+#Cleanup backups
+if [ "$Cleanup" -eq "1" ] 
+then
+    Count=1
+    echo "" | tee -a $LogFile
+    echo "Cleaning Up Old Backups..." | tee -a $LogFile
+    echo "" | tee -a $LogFile
+    echo "Removed the Following Backups:" | tee -a $LogFile
+    for file in $(ls -t $OutDir | grep -v lost | grep .tgz); do
+	if [ "$Count" -gt "$RemoveCount" ]
+	then
+	    echo $file | tee -a $LogFile
+	    rm -f $OutDir$file | tee -a $LogFile
+	fi
+	let Count++
+    done
+fi
+
+
+#Log Formating of ending
+echo "" | tee -a $LogFile
+echo "" | tee -a $LogFile
+echo "Finished at: " | tee -a $LogFile
+date | tee -a $LogFile
+echo "" | tee -a $LogFile
+echo "*****************************************************************" | tee -a $LogFile
+echo "*****************************************************************" | tee -a $LogFile
+
+
+#Create email and send it out using the temp file that was created
+if [ "$EmailReport" -eq "1" ]
+then
+	cat $LogFile | mail -s "Backup Report" $EmailTo
+	cat $LogFile >> $TmpLog
+	rm $LogFile
+fi

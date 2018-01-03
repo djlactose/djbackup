@@ -30,13 +30,6 @@ echo "" | tee -a $LogFile
 echo "" | tee -a $LogFile
 
 
-#Dropbox check
-if [ "$KillDropbox" -eq "1" ]
-then
-    ps ax |grep ".dropbox-dist/dropbox" |grep -v grep | awk '{print $1}' | xargs -i xxx kill xxx
-    rm -rf $DropboxDir
-fi
-
 #Backup Code started
 echo $$ > $pidFile
 echo "" | tee -a $LogFile
@@ -97,10 +90,17 @@ rm $pidFile
 if [ "$RemoteCopy" -eq "1" ] 
 then
     echo "Remote Copy Starting..." | tee -a $LogFile
-    su $RemoteUsername -c "rsync -az $OutDir$OutFile $RemoteUsername@$RemoteServer:$RemotePath/$OutFile.tgz" | tee -a $LogFile
+    rsync -az $OutDir$OutFile $RemoteUsername@$RemoteServer:$RemotePath/$OutFile.tgz | tee -a $LogFile
     echo "" | tee -a $LogFile
 fi
 
+#Google Cloud Bucket Copy
+if [ "$CloudBK" -eq "1" ]
+then
+    echo "Cloud Backup Starting in background..." | tee -a $LogFile
+    bucketPath= $(echo $bucketPath | sed  '/^\// s///')
+    nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
+fi
 
 #Create second local copy
 if [ "$SecondCopy" -eq "1" ]

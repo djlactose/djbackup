@@ -73,6 +73,7 @@ if [ "$EncryptBackup" -eq "1" ]
 then
     echo "Backing up $BkDir" | tee -a $LogFile
     echo $EncryptPassphrase > /etc/djbackup/.encrypt_pass
+    chmod 700 /etc/djbackup/.encrypt_pass
     OutFile=$OutFile.gpg
     tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass

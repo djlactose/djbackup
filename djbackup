@@ -123,6 +123,23 @@ then
     done
 fi
 
+#Clean up RPM Backup
+if [ "$RPMBackup" -eq "1" ]
+then
+    rm $RPMFile
+fi
+
+#Clean up Cron Backup
+if [ "$CronBackup" -eq "1" ]
+then
+    rm $CronFile
+fi
+
+#Clean up mySQL backup
+if [ "$MySQLDump" -eq "1" ] 
+then
+    rm $MySQLLocation
+fi
 
 #Cleanup backups
 if [ "$Cleanup" -eq "1" ] 

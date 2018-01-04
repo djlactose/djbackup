@@ -99,7 +99,7 @@ fi
 if [ "$CloudBK" -eq "1" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
-    bucketPath= $(echo $bucketPath | sed  '/^\// s///')
+    bucketPath=$(echo $bucketPath | sed  '/^\// s///')
     nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
 fi
 

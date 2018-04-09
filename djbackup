@@ -1,6 +1,7 @@
 #!/usr/bin/sh
 . /etc/djbackup/djbackup.conf
 
+BaseFilename=$OutFile
 OutFile=$(date +%Y%m%d)$OutFile
 
 #Pid File Check
@@ -116,7 +117,7 @@ then
     echo "Cleaning Up Old Second Backups..." | tee -a $LogFile
     echo "" | tee -a $LogFile
     echo "Removed the Following Second Backups:" | tee -a $LogFile
-    for file in $(ls -t $SecondDevice | grep -v lost |grep .tgz); do
+    for file in $(ls -t $SecondDevice | grep -v lost |grep $BaseFilename); do
 	if [ "$Count" -gt "$SecondCopies" ]
 	then
 	    echo $file | tee -a $LogFile
@@ -152,7 +153,7 @@ then
     echo "Cleaning Up Old Backups..." | tee -a $LogFile
     echo "" | tee -a $LogFile
     echo "Removed the Following Backups:" | tee -a $LogFile
-    for file in $(ls -t $OutDir | grep -v lost | grep .tgz); do
+    for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do
 	if [ "$Count" -gt "$RemoveCount" ]
 	then
 	    echo $file | tee -a $LogFile

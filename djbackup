@@ -76,10 +76,18 @@ then
     echo $EncryptPassphrase > /etc/djbackup/.encrypt_pass
     chmod 700 /etc/djbackup/.encrypt_pass
     OutFile=$OutFile.tgz.gpg
+    if [ -f "$OutDir$OutFile" ]
+    then
+	OutFile=$OutFile.$(date +%H%M%S)
+    fi
     tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
     OutFile=$OutFile.tgz
+    if [ -f "$OutDir$OutFile" ]
+    then
+        OutFile=$OutFile.$(date +%H%M%S)
+    fi
     tar -czvf $OutDir$OutFile $BkDir | tee -a $LogFile
 fi
 date | tee -a $LogFile

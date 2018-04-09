@@ -61,10 +61,8 @@ fi
 #Cron Backup Started
 if [ "$CronBackup" -eq "1" ]
 then
-    echo "Dumping Cron..." | tee -a $LogFile
-    crontab -l > $CronFile
-    chmod 700 $CronFile
-    echo "Done Dumping Cron..." | tee -a $LogFile
+    echo "Adding Cron Files to backup list..." | tee -a $LogFile
+    BkDir="$BkDir /var/spool/cron/"
     echo "" | tee -a $LogFile
 fi
 
@@ -132,12 +130,6 @@ fi
 if [ "$RPMBackup" -eq "1" ]
 then
     rm $RPMFile
-fi
-
-#Clean up Cron Backup
-if [ "$CronBackup" -eq "1" ]
-then
-    rm $CronFile
 fi
 
 #Clean up mySQL backup

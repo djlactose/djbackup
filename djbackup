@@ -3,6 +3,7 @@
 
 BaseFilename=$OutFile
 OutFile=$(date +%Y%m%d)$OutFile
+BkDir="$BkDir /etc/djbackup"
 
 #Pid File Check
 if [ -f "$pidFile" ]

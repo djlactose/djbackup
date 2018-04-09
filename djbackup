@@ -1,6 +1,7 @@
 #!/usr/bin/sh
 . /etc/djbackup/djbackup.conf
 
+OutFile=$(date +%Y%m%d)$OutFile
 
 #Pid File Check
 if [ -f "$pidFile" ]
@@ -74,10 +75,11 @@ then
     echo "Backing up $BkDir" | tee -a $LogFile
     echo $EncryptPassphrase > /etc/djbackup/.encrypt_pass
     chmod 700 /etc/djbackup/.encrypt_pass
-    OutFile=$OutFile.gpg
+    OutFile=$OutFile.tgz.gpg
     tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
+    OutFile=$OutFile.tgz
     tar -czvf $OutDir$OutFile $BkDir | tee -a $LogFile
 fi
 date | tee -a $LogFile
@@ -91,12 +93,12 @@ rm $pidFile
 if [ "$RemoteCopy" -eq "1" ] 
 then
     echo "Remote Copy Starting..." | tee -a $LogFile
-    rsync -az $OutDir$OutFile $RemoteUsername@$RemoteServer:$RemotePath/$OutFile.tgz | tee -a $LogFile
+    rsync -az $OutDir$OutFile $RemoteUsername@$RemoteServer:$RemotePath/$OutFile | tee -a $LogFile
     echo "" | tee -a $LogFile
 fi
 
 #Google Cloud Bucket Copy
-if [ "$CloudBK" -eq "1" ]
+if [ "$CloudBK" == "G" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
     bucketPath=$(echo $bucketPath | sed  '/^\// s///')

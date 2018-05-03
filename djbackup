@@ -83,6 +83,7 @@ then
     tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
+    echo "Backing up $BkDir" | tee -a $LogFile
     OutFile=$OutFile.tgz
     if [ -f "$OutDir$OutFile" ]
     then
@@ -90,6 +91,8 @@ else
     fi
     tar -czvf $OutDir$OutFile $BkDir | tee -a $LogFile
 fi
+echo "" | tee -a $LogFile
+echo "Backup completed:" | tee -a $LogFile
 date | tee -a $LogFile
 echo "" | tee -a $LogFile
 rm $pidFile

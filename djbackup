@@ -39,13 +39,13 @@ do
     shift
     ;;
   *)
-    echo "Usage: $0 [-c] [-u] [-m]
+    echo "Usage: $0 [-c] [-C] [-e] [-m] [-r] [-s] [-x]
 
 -c | --nocloud     Run backup but don't send it to the cloud
 -C | --nocron      Run backup but don't backup cron
 -e | --noencrypt   Run backup but don't encrypt it
 -m | --nomysql     Run backup but don't backup mysql
--4 | --norpm       Run backup but don't backup the rpm list
+-r | --norpm       Run backup but don't backup the rpm list
 -s | --nosecond    Run backup but don't copy the backup to the second location
 -x | --nocleanup   Run backup but don't remove old copies"
     exit 1

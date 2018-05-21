@@ -5,6 +5,54 @@ BaseFilename=$OutFile
 OutFile=$(date +%Y%m%d)$OutFile
 BkDir="$BkDir /etc/djbackup"
 
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+  case $key in
+  -c|--nocloud) #Don't backup to the cloud
+    CloudBK=0
+    shift
+    ;;
+  -C|--nocron) #Don't backup to the cloud
+    CloudBK=0
+    shift
+    ;;
+  -e|--noencrypt) #Don't backup to the cloud
+    EncryptBackup=0
+    shift
+    ;;
+  -m|--nomysql) #Don't backup to the cloud
+    CloudBK=0
+    shift
+    ;;
+  -r|--norpm) #Don't backup to the cloud
+    SecondCopy=0
+    shift
+    ;;
+  -s|--nosecond) #Don't backup to the cloud
+    SecondCopy=0
+    shift
+    ;;
+  -x|--nocleanup) #Don't backup to the cloud
+    Cleanup=0
+    SecondCopies=0
+    shift
+    ;;
+  *)
+    echo "Usage: $0 [-c] [-u] [-m]
+
+-c | --nocloud     Run backup but don't send it to the cloud
+-C | --nocron      Run backup but don't backup cron
+-e | --noencrypt   Run backup but don't encrypt it
+-m | --nomysql     Run backup but don't backup mysql
+-4 | --norpm       Run backup but don't backup the rpm list
+-s | --nosecond    Run backup but don't copy the backup to the second location
+-x | --nocleanup   Run backup but don't remove old copies"
+    exit 1
+    ;;
+  esac
+done
+
 #Pid File Check
 if [ -f "$pidFile" ]
 then 

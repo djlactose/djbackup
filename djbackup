@@ -65,6 +65,9 @@ then
     fi
 fi
 
+#Run pre-execution command before backup
+$($preCom)
+
 #Email Report start writting out to a temp file to be able to send the report
 if [ "$EmailReport" -eq "1" ]
 then
@@ -233,3 +236,6 @@ then
 	cat $LogFile >> $TmpLog
 	rm $LogFile
 fi
+
+#Run Post-processing command
+$($postCom)

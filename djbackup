@@ -121,6 +121,27 @@ fi
 #####################################################
 #####################################################
 #Do the actual backup
+# Enable differential backup
+DiffBackup=0
+#
+# Day of the week for full backup
+# Options: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+DiffWkDay=Sun
+if [ "$DiffBackup" -eq "1" ]
+then
+    weekDay=$(date|cut -d " " -f 1)
+    if [ "$weekDay" == "$DiffWkDay" ]
+    then
+         parms="-g /etc/djbackup/filelist.txt --level=1"
+         OutFile=$OutFile.inc
+    else
+         parms="-g /etc/djbackup/filelist.txt --level=0"
+         OutFile=$OutFile.full
+    fi
+else
+    parms=""
+fi
+
 if [ "$EncryptBackup" -eq "1" ]
 then
     echo "Backing up $BkDir" | tee -a $LogFile
@@ -131,7 +152,7 @@ then
     then
 	OutFile=$OutFile.$(date +%H%M%S)
     fi
-    tar -cz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
+    tar $parms -pcz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
     echo "Backing up $BkDir" | tee -a $LogFile
@@ -140,7 +161,7 @@ else
     then
         OutFile=$OutFile.$(date +%H%M%S)
     fi
-    tar -czvf $OutDir$OutFile $BkDir | tee -a $LogFile
+    tar $parms -pczvf $OutDir$OutFile $BkDir | tee -a $LogFile
 fi
 echo "" | tee -a $LogFile
 echo "Backup completed:" | tee -a $LogFile

@@ -117,18 +117,10 @@ then
     echo "" | tee -a $LogFile
 fi
 
-#####################################################
-#####################################################
-#####################################################
-#Do the actual backup
-# Enable differential backup
-DiffBackup=0
-#
-# Day of the week for full backup
-# Options: Mon, Tue, Wed, Thu, Fri, Sat, Sun
-DiffWkDay=Sun
+#This will check if differential backup is on and then run one if it is.
 if [ "$DiffBackup" -eq "1" ]
 then
+    #Checks the current day of the week to see if it is the day the differential is supposed to be run
     weekDay=$(date|cut -d " " -f 1)
     if [ "$weekDay" == "$DiffWkDay" ]
     then

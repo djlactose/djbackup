@@ -124,11 +124,11 @@ then
     weekDay=$(date|cut -d " " -f 1)
     if [ "$weekDay" == "$DiffWkDay" ]
     then
-         parms="-g /etc/djbackup/filelist.txt --level=1"
-         OutFile=$OutFile.inc
-    else
          parms="-g /etc/djbackup/filelist.txt --level=0"
          OutFile=$OutFile.full
+    else
+         parms="-g /etc/djbackup/filelist.txt --level=1"
+         OutFile=$OutFile.inc
     fi
 else
     parms=""

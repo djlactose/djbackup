@@ -221,14 +221,40 @@ then
     echo "Cleaning Up Old Backups..." | tee -a $LogFile
     echo "" | tee -a $LogFile
     echo "Removed the Following Backups:" | tee -a $LogFile
-    for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do
-	if [ "$Count" -gt "$RemoveCount" ]
-	then
-	    echo $file | tee -a $LogFile
-	    rm -f $OutDir$file | tee -a $LogFile
-	fi
-	let Count++
-    done
+    if [ "$DiffBackup" -eq "1" ]
+    then
+        #Checks the current day of the week to see if it is the day the differential is supposed to be run
+        weekDay=$(date|cut -d " " -f 1)
+        if [ "$weekDay" == "$DiffWkDay" ]
+        then
+	  for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do
+            if [ "$Count" -gt "$RemoveCount" ]
+            then
+                echo $file | tee -a $LogFile
+                rm -f $OutDir$file | tee -a $LogFile
+            fi
+            let Count++
+          done
+	else
+	  for file in $(ls -t $OutDir | grep -v lost |grep -v full | grep $BaseFilename); do
+            if [ "$Count" -gt "$RemoveCount" ]
+            then
+               echo $file | tee -a $LogFile
+       	       rm -f $OutDir$file | tee -a $LogFile
+       	     fi
+       	     let Count++
+          done
+        fi
+    else
+	for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do
+	  if [ "$Count" -gt "$RemoveCount" ]
+	  then
+	      echo $file | tee -a $LogFile
+	      rm -f $OutDir$file | tee -a $LogFile
+	  fi
+	  let Count++
+	done
+    fi
 fi
 
 

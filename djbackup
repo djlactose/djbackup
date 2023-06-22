@@ -1,9 +1,44 @@
 #!/usr/bin/sh
 . /etc/djbackup/djbackup.conf
 
+checkAppUpdate(){
+  #Download script from bastion host to tmp directory
+  md5=`md5sum $0 |cut -d " " -f 1`
+  curl -o /tmp/djbackup https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup
+  #has file
+  if [ -f "/tmp/djbackup" ]
+  then
+    newmd5=`md5sum /tmp/djbackup |cut -d " " -f 1`
+  else
+    newmd5=$md5
+  fi
+  #Compare hashes to see if they are different
+  if [ "$newmd5" != "$md5" ]
+  then
+    mv /tmp/djbackup $0.tmp
+  else
+    if [ -f "/tmp/djbackup" ]
+    then
+      echo ""
+      echo "No Application Update found"
+      rm /tmp/djbackup
+    fi
+  fi
+  #Install new script
+  if [ -f "$0.tmp" ]
+  then
+    echo ""
+    echo "Application Update found, applying update"
+    rm $0
+    mv $0.tmp $0
+  fi
+}  
+
 BaseFilename=$OutFile
 OutFile=$(date +%Y%m%d)$OutFile
 BkDir="$BkDir /etc/djbackup"
+SwarmBK="/etc/djbackup/docker_swarm_bk.json"
+ContainerBK="/etc/djbackup/docker_container_bk.json"
 
 while [[ $# -gt 0 ]]
 do
@@ -33,13 +68,17 @@ do
     SecondCopy=0
     shift
     ;;
+  -u|--update) #Check for updates
+    checkAppUpdate
+    exit 0
+    ;;
   -x|--nocleanup) #Don't backup to the cloud
     Cleanup=0
     SecondCopies=0
     shift
     ;;
   *)
-    echo "Usage: $0 [-c] [-C] [-e] [-m] [-r] [-s] [-x]
+    echo "Usage: $0 [-c] [-C] [-e] [-m] [-r] [-s] [-u] [-x]
 
 -c | --nocloud     Run backup but don't send it to the cloud
 -C | --nocron      Run backup but don't backup cron
@@ -47,6 +86,7 @@ do
 -m | --nomysql     Run backup but don't backup mysql
 -r | --norpm       Run backup but don't backup the rpm list
 -s | --nosecond    Run backup but don't copy the backup to the second location
+-u | --update      Checks for updates to the script
 -x | --nocleanup   Run backup but don't remove old copies"
     exit 1
     ;;
@@ -108,12 +148,27 @@ then
     echo "" | tee -a $LogFile
 fi
 
-
 #Cron Backup Started
 if [ "$CronBackup" -eq "1" ]
 then
     echo "Adding Cron Files to backup list..." | tee -a $LogFile
     BkDir="$BkDir /var/spool/cron/"
+    echo "" | tee -a $LogFile
+fi
+
+#Docker Swarm Backup Started
+if [ "$DockerSwarm" -eq "1" ]
+then
+    echo "Adding Docker Swarm Configuration Files to backup list..." | tee -a $LogFile
+    docker service ls -q | xargs docker service inspect > $SwarmBK
+    echo "" | tee -a $LogFile
+fi
+
+#Docker Container Backup Started
+if [ "$DockerContainer" -eq "1" ]
+then
+    echo "Adding Docker Container Configuration Files to backup list..." | tee -a $LogFile
+    docker service ls -q | xargs docker service inspect > $ContainerBK
     echo "" | tee -a $LogFile
 fi
 
@@ -213,6 +268,18 @@ then
     rm $MySQLLocation
 fi
 
+#Clean up mySQL backup
+if [ "$DockerSwarm" -eq "1" ] 
+then
+    rm $SwarmBK
+fi
+
+#Clean up mySQL backup
+if [ "$DockerContainer" -eq "1" ] 
+then
+    rm $ContainerBK
+fi
+
 #Cleanup backups
 if [ "$Cleanup" -eq "1" ] 
 then
@@ -278,3 +345,6 @@ fi
 
 #Run Post-processing command
 $($postCom)
+
+#Check for updates
+checkAppUpdate

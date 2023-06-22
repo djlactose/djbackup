@@ -111,6 +111,16 @@ CronBackup=0
 ####################################
 #
 ####################################
+# Docker Backup settings
+# 
+# Backup Docker Service Configurations
+DockerSwarm=0
+#
+# Docker Container Configuration Backup
+DockerContainer=0
+####################################
+#
+####################################
 # Enable Emailing of Report
 EmailReport=0
 #

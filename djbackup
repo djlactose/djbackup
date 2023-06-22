@@ -2,7 +2,7 @@
 . /etc/djbackup/djbackup.conf
 
 checkAppUpdate(){
-  #Download script from bastion host to tmp directory
+  #Download script from Github
   md5=`md5sum $0 |cut -d " " -f 1`
   curl -o /tmp/djbackup https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup
   #has file
@@ -33,6 +33,39 @@ checkAppUpdate(){
     mv $0.tmp $0
   fi
 }  
+
+checkConfUpdate(){
+  #Download config from Github to tmp directory
+  md5=`md5sum /etc/djbackup/djbackup.conf.sample |cut -d " " -f 1`
+  curl -o /tmp/djbackup.conf.sample https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup.conf.sample
+  #has file
+  if [ -f "/tmp/djbackup.conf.sample" ]
+  then
+    newmd5=`md5sum /tmp/djbackup.conf.sample |cut -d " " -f 1`
+  else
+    newmd5=$md5
+  fi
+  #Compare hashes to see if they are different
+  if [ "$newmd5" != "$md5" ]
+  then
+    mv /tmp/djbackup.conf.sample /etc/djbackup/djbackup.conf.sample.tmp
+  else
+    if [ -f "/tmp/djbackup.conf.sample" ]
+    then
+      echo ""
+      echo "Sample Config Update found"
+      rm /tmp/djbackup.conf.sample
+    fi
+  fi
+  #Install new script
+  if [ -f "/etc/djbackup/djbackup.conf.sample.tmp" ]
+  then
+    echo ""
+    echo "Config sample Update found, applying update"
+    rm /etc/djbackup/djbackup.conf.sample
+    mv /etc/djbackup/djbackup.conf.sample.tmp /etc/djbackup/djbackup.conf.sample
+  fi
+}
 
 BaseFilename=$OutFile
 OutFile=$(date +%Y%m%d)$OutFile
@@ -70,6 +103,7 @@ do
     ;;
   -u|--update) #Check for updates
     checkAppUpdate
+    checkConfUpdate
     exit 0
     ;;
   -x|--nocleanup) #Don't backup to the cloud
@@ -348,3 +382,4 @@ $($postCom)
 
 #Check for updates
 checkAppUpdate
+checkConfUpdate

@@ -53,7 +53,7 @@ checkConfUpdate(){
     if [ -f "/tmp/djbackup.conf.sample" ]
     then
       echo ""
-      echo "Sample Config Update found"
+      echo "No Sample Config Update found"
       rm /tmp/djbackup.conf.sample
     fi
   fi

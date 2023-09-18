@@ -15,7 +15,10 @@ checkAppUpdate(){
   #Compare hashes to see if they are different
   if [ "$newmd5" != "$md5" ]
   then
-    mv /tmp/djbackup $0.tmp
+    if grep -q https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup "/tmp/djbackup"; then
+      mv /tmp/djbackup $0.tmp
+      chmod 755 $0.tmp
+    fi
   else
     if [ -f "/tmp/djbackup" ]
     then

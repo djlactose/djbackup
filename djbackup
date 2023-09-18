@@ -16,7 +16,8 @@ checkAppUpdate(){
   if [ "$newmd5" != "$md5" ]
   then
     if grep -q https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup "/tmp/djbackup"; then
-      chmod 755 $0.tmp
+      chmod --reference=$0 /tmp/djbackup
+      chown --reference=$0 /tmp/djbackup
       mv /tmp/djbackup $0.tmp
     fi
   else

@@ -388,6 +388,9 @@ fi
 #Run Post-processing command
 $($postCom)
 
-#Check for updates
-checkAppUpdate
-checkConfUpdate
+#Check for updates if on
+if [ "$AutoUpdate" -eq "1" ]
+then
+  checkAppUpdate
+  checkConfUpdate
+fi

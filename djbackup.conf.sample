@@ -6,6 +6,9 @@ LogFile=/mnt/Backups/.backup.log
 # Pid File
 pidFile=/var/lock/subsys/djbackup.pid
 #
+#Auto Update 0=Off 1=on
+AutoUpdate=0
+#
 # Directory where the backup is stored
 OutDir=/mnt/Backups/
 #

@@ -101,11 +101,19 @@ MySQLLocation=/etc/djbackup/db_backup.sql
 ####################################
 #
 ####################################
-# Backup Installed RPM List 0 = off 1 = on
+# Backup Installed RPM List (RHEL based OSes) 0 = off 1 = on
 RPMBackup=0
 #
-# Where to backup cron to
+# Where to backup RPM List to
 RPMFile="/etc/djbackup/installedRPMs.txt"
+####################################
+#
+####################################
+# Backup Installed dpkg (Debian based systems) 0 = off 1 = on
+dpkgBackup=0
+#
+# Where to backup dpkg list
+dpkgFile="/etc/djbackup/installed_dpkg.txt"
 ####################################
 #
 ####################################

@@ -89,11 +89,11 @@ do
     CloudBK=0
     shift
     ;;
-  -C|--nocron) #Don't backup to the cloud
+  -C|--nocron) #Don't backup cron
     CronBackup=0
     shift
     ;;
-  -e|--noencrypt) #Don't backup to the cloud
+  -e|--noencrypt) #Don't encrypt the backup
     EncryptBackup=0
     shift
     ;;
@@ -101,15 +101,15 @@ do
     DiffBackup=0
     shift
     ;;
-  -m|--nomysql) #Don't backup to the cloud
+  -m|--nomysql) #Don't backup MySQL/MariaDB
     MySQLDump=0
     shift
     ;;
-  -r|--norpm) #Don't backup to the cloud
+  -r|--norpm) #Don't backup Installed RPMs
     RPMBackup=0
     shift
     ;;
-  -s|--nosecond) #Don't backup to the cloud
+  -s|--nosecond) #Don't make a second copy
     SecondCopy=0
     shift
     ;;
@@ -118,7 +118,7 @@ do
     checkConfUpdate
     exit 0
     ;;
-  -x|--nocleanup) #Don't backup to the cloud
+  -x|--nocleanup) #Don't cleanup old backups
     Cleanup=0
     shift
     ;;
@@ -178,11 +178,16 @@ echo "" | tee -a $LogFile
 
 
 #Installed RPM List Generation
-if [ "$RPMBackup" -eq "1" ]
+if [ "$dpkgBackup" -eq "1" ]
 then
-        rpm -qa > $RPMFile
+        rpm -qa > $dpkgFile
 fi
 
+#Installed dpkg
+if [ "$RPMBackup" -eq "1" ]
+then
+        apt list --installed > $RPMFile
+fi
 
 #MySQL Backup started
 if [ "$MySQLDump" -eq "1" ] 

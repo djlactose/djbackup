@@ -1,20 +1,20 @@
 ####################################
 ####################################
 # Log file of the backup program
-LogFile=/mnt/Backups/.backup.log
+LogFile="/mnt/Backups/.backup.log"
 #
 # Pid File
-pidFile=/var/lock/subsys/djbackup.pid
+pidFile="/var/lock/subsys/djbackup.pid"
 #
 #Auto Update 0=Off 1=on
 AutoUpdate=0
 #
 # Directory where the backup is stored
-OutDir=/mnt/Backups/
+OutDir="/mnt/Backups/"
 #
 # This is the base file name of the backup
 # NOTE:  Date and time stamp will automatically be added to the begining of this filename
-OutFile=$(whoami)HomeDir.$(hostname)
+OutFile="$(whoami)HomeDir.$(hostname)"
 #
 # Directory or Directories to backup.  Each directory should be seperated by a space.
 # NOTE:  djbackup's setting directory will automatically be backed up
@@ -27,7 +27,7 @@ BkDir="/home/$(whoami)"
 EncryptBackup=0
 #
 # Passphrase to be used for Encryption
-EncryptPassphrase=
+EncryptPassphrase=""
 ####################################
 #
 ####################################
@@ -36,7 +36,7 @@ DiffBackup=0
 #
 # Day of the week for full backup
 # Options: Mon, Tue, Wed, Thu, Fri, Sat, Sun
-DiffWkDay=Sun
+DiffWkDay="Sun"
 ####################################
 #
 ####################################
@@ -44,7 +44,7 @@ DiffWkDay=Sun
 SecondCopy=0
 #
 # Device Address
-SecondDevice=
+SecondDevice=""
 #
 # Number of Second Copies to keep 0 = all
 SecondCopies=0
@@ -54,7 +54,7 @@ SecondCopies=0
 # Copy Backup to the cloud
 # Enable Google Cloud Backup 0 = off 1 = on
 # NOTE:  This is kicked off in the background so multiple backups will create multiple uploads.
-CloudBK=G
+CloudBK="G"
 # G = Google Cloud
 # NOTE:  This requires the gsutil application from google
 #
@@ -69,13 +69,13 @@ bucketPath="/"
 RemoteCopy=0
 #
 # Remote Username
-RemoteUsername=
+RemoteUsername=""
 #
 # Remote Server
-RemoteServer=
+RemoteServer=""
 #
 # Remote Path on server
-RemoteDevice=
+RemoteDevice=""
 ####################################
 #
 ####################################
@@ -91,10 +91,10 @@ RemoveCount=5
 MySQLDump=0
 #
 # Username
-MySQLUser=
+MySQLUser=""
 #
 #Password
-MySQLPassword=
+MySQLPassword=""
 #
 # Location of Dump File
 MySQLLocation=/etc/djbackup/db_backup.sql
@@ -105,7 +105,7 @@ MySQLLocation=/etc/djbackup/db_backup.sql
 RPMBackup=0
 #
 # Where to backup cron to
-RPMFile=/etc/djbackup/installedRPMs.txt
+RPMFile="/etc/djbackup/installedRPMs.txt"
 ####################################
 #
 ####################################
@@ -128,14 +128,14 @@ DockerContainer=0
 EmailReport=0
 #
 # Email address to email report
-EmailTo=
+EmailTo=""
 ####################################
 #
 ####################################
 # Run a command before backup starts
-preCom=
+preCom=""
 #
 # Run a command when backup is done
-postCom=
+postCom=""
 ####################################
 ####################################

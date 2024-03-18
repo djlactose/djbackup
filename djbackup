@@ -313,6 +313,12 @@ then
     rm $RPMFile
 fi
 
+#Clean up dpkg Backup
+if [ "$dpkgBackup" -eq "1" ]
+then
+    rm $dpkgFile
+fi
+
 #Clean up mySQL backup
 if [ "$MySQLDump" -eq "1" ] 
 then

@@ -219,7 +219,7 @@ if [ "$DiffBackup" -eq "1" ]
 then
     #Checks the current day of the week to see if it is the day the differential is supposed to be run
     weekDay=$(date|cut -d " " -f 1)
-    if [[ "$weekDay" == "$DiffWkDay" ]]
+    if [ "$weekDay" = "$DiffWkDay" ]
     then
          parms="-g /etc/djbackup/filelist.txt --level=0"
          OutFile=$OutFile.full
@@ -270,7 +270,7 @@ then
 fi
 
 #Google Cloud Bucket Copy
-if [[ "$CloudBK" == "G" ]]
+if [ "$CloudBK" = "G" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
     bucketPath=$(echo $bucketPath | sed  '/^\// s///')
@@ -334,7 +334,7 @@ then
     then
         #Checks the current day of the week to see if it is the day the differential is supposed to be run
         weekDay=$(date|cut -d " " -f 1)
-        if [[ "$weekDay" == "$DiffWkDay" ]]
+        if [ "$weekDay" = "$DiffWkDay" ]
         then
 	  for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do
             if [ "$Count" -gt "$RemoveCount" ]

@@ -19,6 +19,8 @@ checkAppUpdate(){
       chmod --reference=$0 /tmp/djbackup
       chown --reference=$0 /tmp/djbackup
       mv /tmp/djbackup $0.tmp
+    else
+      echo "Invald app file, ignoring it."
     fi
   else
     if [ -f "/tmp/djbackup" ]
@@ -52,10 +54,12 @@ checkConfUpdate(){
   #Compare hashes to see if they are different
   if [ "$newmd5" != "$md5" ]
   then
-    if grep -q "/mnt/Backups/.backup.log" "/tmp/djbackup.conf.sample"; then
+    if grep -q LogFile= "/tmp/djbackup.conf.sample"; then
       chmod --reference=/etc/djbackup/djbackup.conf.sample  /tmp/djbackup.conf.sample
       chown --reference=/etc/djbackup/djbackup.conf.sample /tmp/djbackup.conf.sample
       mv /tmp/djbackup.conf.sample /etc/djbackup/djbackup.conf.sample.tmp
+    else
+      echo "Invald sample config, ignoring it."
     fi
   else
     if [ -f "/tmp/djbackup.conf.sample" ]

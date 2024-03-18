@@ -90,19 +90,23 @@ do
     shift
     ;;
   -C|--nocron) #Don't backup to the cloud
-    CloudBK=0
+    CronBackup=0
     shift
     ;;
   -e|--noencrypt) #Don't backup to the cloud
     EncryptBackup=0
     shift
     ;;
+  -f|--full) #Run a full backup
+    DiffBackup=0
+    shift
+    ;;
   -m|--nomysql) #Don't backup to the cloud
-    CloudBK=0
+    MySQLDump=0
     shift
     ;;
   -r|--norpm) #Don't backup to the cloud
-    SecondCopy=0
+    RPMBackup=0
     shift
     ;;
   -s|--nosecond) #Don't backup to the cloud
@@ -116,15 +120,15 @@ do
     ;;
   -x|--nocleanup) #Don't backup to the cloud
     Cleanup=0
-    SecondCopies=0
     shift
     ;;
   *)
-    echo "Usage: $0 [-c] [-C] [-e] [-m] [-r] [-s] [-u] [-x]
+    echo "Usage: $0 [-c] [-C] [-e] [-f] [-m] [-r] [-s] [-u] [-x]
 
 -c | --nocloud     Run backup but don't send it to the cloud
 -C | --nocron      Run backup but don't backup cron
 -e | --noencrypt   Run backup but don't encrypt it
+-f | --full        Run a full backup
 -m | --nomysql     Run backup but don't backup mysql
 -r | --norpm       Run backup but don't backup the rpm list
 -s | --nosecond    Run backup but don't copy the backup to the second location

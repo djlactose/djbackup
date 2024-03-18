@@ -52,7 +52,7 @@ checkConfUpdate(){
   #Compare hashes to see if they are different
   if [ "$newmd5" != "$md5" ]
   then
-    if grep -q LogFile=/mnt/Backups/.backup.log "/tmp/djbackup.conf.sample"; then
+    if grep -q "/mnt/Backups/.backup.log" "/tmp/djbackup.conf.sample"; then
       chmod --reference=/etc/djbackup/djbackup.conf.sample  /tmp/djbackup.conf.sample
       chown --reference=/etc/djbackup/djbackup.conf.sample /tmp/djbackup.conf.sample
       mv /tmp/djbackup.conf.sample /etc/djbackup/djbackup.conf.sample.tmp

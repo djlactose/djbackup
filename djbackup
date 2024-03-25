@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 . /etc/djbackup/djbackup.conf
 
 checkAppUpdate(){
@@ -184,13 +184,13 @@ echo "" | tee -a $LogFile
 #Installed RPM List Generation
 if [ "$dpkgBackup" -eq "1" ]
 then
-        rpm -qa > $dpkgFile
+        apt list --installed > $dpkgFile
 fi
 
 #Installed dpkg
 if [ "$RPMBackup" -eq "1" ]
 then
-        apt list --installed > $RPMFile
+        rpm -qa > $RPMFile
 fi
 
 #MySQL Backup started

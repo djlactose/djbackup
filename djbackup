@@ -146,13 +146,14 @@ done
 #Pid File Check
 if [ -f "$pidFile" ]
 then 
-    if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
-    then
-	echo "Backup Already in progress" | tee -a $LogFile
-	exit 1
-    else
-	rm $pidFile
-    fi
+  if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
+  then
+	  echo "Backup Already in progress"
+    echo "Another Backup couldn't start at " $(date) >> $LogFile
+	  exit 1
+  else
+	  rm $pidFile
+  fi
 fi
 
 #Run pre-execution command before backup

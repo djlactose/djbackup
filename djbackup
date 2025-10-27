@@ -144,13 +144,25 @@ do
 done
 
 #Pid File Check
-if [ -f "$pidFile" ]
+if [ -f "$pidFile" && "$RunOnlyOnce" -eq 1 ]
 then 
   if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
   then
 	  echo "Backup Already in progress"
     echo "Another Backup couldn't start at " $(date) >> $LogFile
-	  exit 1
+	  if [ "$QueBackup" -ne 1]
+    then
+      exit 1
+    else
+      echo "Queuing backup new backup" >> $LogFile
+      while [ true ]
+      do
+        if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
+        then
+          sleep 300
+        fi
+      done
+    fi
   else
 	  rm $pidFile
   fi

@@ -11,7 +11,7 @@ AutoUpdate=0
 #
 #Allow More than one Instance
 #NOTE: When this happens the log file will contain entries from both runs.
-RunOnlyOnce=1
+RunMulti=0
 #
 #Have missed backups wait until the previous backup finishes instead of skipping it
 #NOTE: Run only once has to be turnned off for the que feature to work.

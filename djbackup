@@ -84,6 +84,7 @@ OutFile=$(date +%Y%m%d)$OutFile
 BkDir="$BkDir /etc/djbackup"
 SwarmBK="/etc/djbackup/docker_swarm_bk.json"
 ContainerBK="/etc/djbackup/docker_container_bk.json"
+weekDay=$(date|cut -d " " -f 1)
 
 while [ $# -gt 0 ]
 do
@@ -365,7 +366,6 @@ then
     if [ "$DiffBackup" -eq "1" ]
     then
         #Checks the current day of the week to see if it is the day the differential is supposed to be run
-        weekDay=$(date|cut -d " " -f 1)
         if [ "$weekDay" = "$DiffWkDay" ]
         then
 	  for file in $(ls -t $OutDir | grep -v lost | grep $BaseFilename); do

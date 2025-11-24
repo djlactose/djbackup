@@ -150,12 +150,12 @@ then
   if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
   then
 	  echo "Backup Already in progress"
-    echo "Another Backup couldn't start at " $(date) >> $LogFile
+    echo "Another Backup couldn't start at " $(date) | tee -a $LogFile
 	  if [ "$QueBackup" -ne 1]
     then
       exit 1
     else
-      echo "Queuing backup new backup" >> $LogFile
+      echo "Queuing new backup" | tee -a $LogFile
       while [ true ]
       do
         if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]

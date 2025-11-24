@@ -257,6 +257,27 @@ then
 else
     parms=""
 fi
+# Tells tar “Don’t verify that device IDs (st_dev) match previous backups.” if option is set
+if [ "noCheckSkip" -eq "1" ]
+then
+    parms=--no-check-device $parms
+fi
+
+params=--warning=no-file-changed --ignore-failed-read $params
+
+if [ "LowPri" -eq "1" ]
+then
+    preTar=nice -n19 ionice -c3
+else
+    preTar=""
+fi
+
+if [ "mBuffer" -eg "1" ]
+then
+    postTar=" | mbuffer -m 2G "
+else
+    postTar=""
+fi
 
 if [ "$EncryptBackup" -eq "1" ]
 then
@@ -266,9 +287,9 @@ then
     OutFile=$OutFile.tgz.gpg
     if [ -f "$OutDir$OutFile" ]
     then
-	OutFile=$OutFile.$(date +%H%M%S)
+	      OutFile=$OutFile.$(date +%H%M%S)
     fi
-    tar $parms -pcz $BkDir| gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
+    $preTar tar $parms -pc $BkDir $postTar | pigz -6 | gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
     echo "Backing up $BkDir" | tee -a $LogFile
@@ -277,7 +298,7 @@ else
     then
         OutFile=$OutFile.$(date +%H%M%S)
     fi
-    tar $parms -pczvf $OutDir$OutFile $BkDir | tee -a $LogFile
+    $preTar tar $parms -pcvf $OutDir$OutFile $BkDir $postTar | pigz -6 | tee -a $LogFile
 fi
 echo "" | tee -a $LogFile
 echo "Backup completed:" | tee -a $LogFile

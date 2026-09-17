@@ -322,7 +322,11 @@ if [ "$CloudBK" = "G" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
     bucketPath=$(echo $bucketPath | sed  '/^\// s///')
-    nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
+    if [ `command -v gcloud -eq 0 ]; then
+      nohup gcloud storage cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
+    elif [ `command -v gsutil -eq 0 ]; then
+      nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
+    fi
 fi
 
 #Create second local copy

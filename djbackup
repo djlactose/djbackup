@@ -1,7 +1,17 @@
 #!/usr/bin/bash
 . /etc/djbackup/djbackup.conf
 
+#Returns true if a command is installed
+hasCmd(){
+  command -v "$1" >/dev/null 2>&1
+}
+
 checkAppUpdate(){
+  if ! hasCmd curl || ! hasCmd md5sum
+  then
+    echo "curl and md5sum are required to check for updates, skipping update check."
+    return
+  fi
   #Download script from Github
   md5=`md5sum $0 |cut -d " " -f 1`
   curl -o /tmp/djbackup https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup
@@ -41,6 +51,10 @@ checkAppUpdate(){
 }  
 
 checkConfUpdate(){
+  if ! hasCmd curl || ! hasCmd md5sum
+  then
+    return
+  fi
   #Download config from Github to tmp directory
   md5=`md5sum /etc/djbackup/djbackup.conf.sample |cut -d " " -f 1`
   curl -o /tmp/djbackup.conf.sample https://raw.githubusercontent.com/djlactose/djbackup/master/djbackup.conf.sample
@@ -85,6 +99,7 @@ BkDir="$BkDir /etc/djbackup"
 SwarmBK="/etc/djbackup/docker_swarm_bk.json"
 ContainerBK="/etc/djbackup/docker_container_bk.json"
 weekDay=$(date|cut -d " " -f 1)
+CheckOnly=0
 
 while [ $# -gt 0 ]
 do
@@ -100,6 +115,10 @@ do
     ;;
   -e|--noencrypt) #Don't encrypt the backup
     EncryptBackup=0
+    shift
+    ;;
+  -k|--check) #Check that dependencies for enabled features are installed
+    CheckOnly=1
     shift
     ;;
   -f|--full) #Run a full backup
@@ -128,12 +147,13 @@ do
     shift
     ;;
   *)
-    echo "Usage: $0 [-c] [-C] [-e] [-f] [-m] [-r] [-s] [-u] [-x]
+    echo "Usage: $0 [-c] [-C] [-e] [-f] [-k] [-m] [-r] [-s] [-u] [-x]
 
 -c | --nocloud     Run backup but don't send it to the cloud
 -C | --nocron      Run backup but don't backup cron
 -e | --noencrypt   Run backup but don't encrypt it
 -f | --full        Run a full backup
+-k | --check       Check that everything needed by the enabled features is installed, without running a backup
 -m | --nomysql     Run backup but don't backup mysql
 -r | --norpm       Run backup but don't backup the rpm list
 -s | --nosecond    Run backup but don't copy the backup to the second location
@@ -144,24 +164,128 @@ do
   esac
 done
 
+#Dependency Check: turn off any feature whose command isn't installed
+depWarnings=()
+depErrors=()
+missingDep(){
+  depWarnings+=("WARNING: $1 is not installed, $2")
+}
+
+if ! hasCmd tar
+then
+  depErrors+=("ERROR: tar is not installed, unable to run backup.")
+fi
+
+if hasCmd pigz
+then
+  compressCmd="pigz -6"
+elif hasCmd gzip
+then
+  compressCmd="gzip -6"
+  missingDep pigz "using gzip instead (slower)."
+else
+  depErrors+=("ERROR: Neither pigz nor gzip is installed, unable to compress backup.")
+fi
+
+if [ "$EncryptBackup" -eq "1" ] && ! hasCmd gpg
+then
+  EncryptBackup=0
+  missingDep gpg "backup will NOT be encrypted. Remote and cloud copies are skipped so the unencrypted backup stays on this machine."
+  RemoteCopy=0
+  CloudBK=0
+fi
+
+if [ "${LowPri:-0}" -eq "1" ]
+then
+  for cmd in nice ionice
+  do
+    hasCmd $cmd || missingDep $cmd "backup will run without it."
+  done
+fi
+
+if [ "${mBuffer:-0}" -eq "1" ] && ! hasCmd mbuffer
+then
+  mBuffer=0
+  missingDep mbuffer "backup writes will not be buffered."
+fi
+
+if [ "$dpkgBackup" -eq "1" ] && ! hasCmd apt
+then
+  dpkgBackup=0
+  missingDep apt "skipping installed package list."
+fi
+
+if [ "$RPMBackup" -eq "1" ] && ! hasCmd rpm
+then
+  RPMBackup=0
+  missingDep rpm "skipping installed RPM list."
+fi
+
+if [ "$MySQLDump" -eq "1" ] && ! hasCmd mysqldump
+then
+  MySQLDump=0
+  missingDep mysqldump "skipping MySQL backup."
+fi
+
+if { [ "$DockerSwarm" -eq "1" ] || [ "$DockerContainer" -eq "1" ]; } && ! hasCmd docker
+then
+  DockerSwarm=0
+  DockerContainer=0
+  missingDep docker "skipping Docker configuration backup."
+fi
+
+if [ "$RemoteCopy" -eq "1" ] && ! hasCmd rsync
+then
+  RemoteCopy=0
+  missingDep rsync "skipping remote copy."
+fi
+
+if [ "$CloudBK" = "G" ] && ! hasCmd gcloud && ! hasCmd gsutil
+then
+  CloudBK=0
+  missingDep "gcloud/gsutil" "skipping Google Cloud copy."
+fi
+
+if [ "$EmailReport" -eq "1" ] && ! hasCmd mail
+then
+  EmailReport=0
+  missingDep mail "skipping email report."
+fi
+
+#Check mode: report on dependencies for enabled features and exit without running a backup
+if [ "$CheckOnly" -eq "1" ]
+then
+  if [ ${#depErrors[@]} -eq 0 ] && [ ${#depWarnings[@]} -eq 0 ]
+  then
+    echo "All dependencies for enabled features are installed."
+    exit 0
+  fi
+  printf '%s\n' "${depErrors[@]}" "${depWarnings[@]}" | grep -v '^$'
+  exit 1
+fi
+
+if [ ${#depErrors[@]} -gt 0 ]
+then
+  printf '%s\n' "${depErrors[@]}" | tee -a $LogFile
+  exit 1
+fi
+
 #Pid File Check
-if [ -f "$pidFile" && "$RunMulti" -eq 1 ]
-then 
-  if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
+if [ -f "$pidFile" ] && [ "$RunMulti" -ne 1 ]
+then
+  runningPid=$(cat "$pidFile")
+  if [ -n "$runningPid" ] && kill -0 "$runningPid" 2>/dev/null
   then
 	  echo "Backup Already in progress"
     echo "Another Backup couldn't start at " $(date) | tee -a $LogFile
-	  if [ "$QueBackup" -ne 1]
+	  if [ "$QueBackup" -ne 1 ]
     then
       exit 1
     else
       echo "Queuing new backup" | tee -a $LogFile
-      while [ true ]
+      while kill -0 "$runningPid" 2>/dev/null
       do
-        if [ $(ps -ef|grep -c $(cat $pidFile)) -gt 1 ]
-        then
-          sleep 300
-        fi
+        sleep 300
       done
     fi
   else
@@ -186,6 +310,16 @@ echo "" | tee -a $LogFile
 date | tee -a $LogFile
 echo "" | tee -a $LogFile
 echo "" | tee -a $LogFile
+
+#Report any missing dependencies
+if [ ${#depWarnings[@]} -gt 0 ]
+then
+    for warning in "${depWarnings[@]}"
+    do
+        echo "$warning" | tee -a $LogFile
+    done
+    echo "" | tee -a $LogFile
+fi
 
 
 #Backup Code started
@@ -258,26 +392,31 @@ else
     parms=""
 fi
 # Tells tar “Don’t verify that device IDs (st_dev) match previous backups.” if option is set
-if [ "noCheckSkip" -eq "1" ]
+if [ "${noCheckSkip:-0}" -eq "1" ]
 then
-    parms=--no-check-device $parms
+    parms="--no-check-device $parms"
 fi
 
-params=--warning=no-file-changed --ignore-failed-read $params
+parms="--warning=no-file-changed --ignore-failed-read $parms"
 
-if [ "LowPri" -eq "1" ]
+if [ "${LowPri:-0}" -eq "1" ]
 then
-    preTar=nice -n19 ionice -c3
+    preTar=""
+    hasCmd nice && preTar="$preTar nice -n19"
+    hasCmd ionice && preTar="$preTar ionice -c3"
 else
     preTar=""
 fi
 
-if [ "mBuffer" -eg "1" ]
-then
-    postTar=" | mbuffer -m 2G "
-else
-    postTar=""
-fi
+#Optionally buffer the tar stream to smooth out writes
+bufferStream(){
+  if [ "${mBuffer:-0}" -eq "1" ]
+  then
+    mbuffer -q -m 2G
+  else
+    cat
+  fi
+}
 
 if [ "$EncryptBackup" -eq "1" ]
 then
@@ -289,7 +428,7 @@ then
     then
 	      OutFile=$OutFile.$(date +%H%M%S)
     fi
-    $preTar tar $parms -pc $BkDir $postTar | pigz -6 | gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
+    $preTar tar $parms -pc $BkDir | bufferStream | $compressCmd | gpg --batch --passphrase-file=/etc/djbackup/.encrypt_pass -c -o $OutDir$OutFile
     rm /etc/djbackup/.encrypt_pass
 else
     echo "Backing up $BkDir" | tee -a $LogFile
@@ -298,7 +437,8 @@ else
     then
         OutFile=$OutFile.$(date +%H%M%S)
     fi
-    $preTar tar $parms -pcvf $OutDir$OutFile $BkDir $postTar | pigz -6 | tee -a $LogFile
+    #With the archive on stdout, tar writes the verbose file list to stderr, so send that to the log
+    $preTar tar $parms -pcv -f - $BkDir 2> >(tee -a $LogFile) | bufferStream | $compressCmd > $OutDir$OutFile
 fi
 echo "" | tee -a $LogFile
 echo "Backup completed:" | tee -a $LogFile
@@ -322,9 +462,9 @@ if [ "$CloudBK" = "G" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
     bucketPath=$(echo $bucketPath | sed  '/^\// s///')
-    if [ `command -v gcloud -eq 0 ]; then
+    if command -v gcloud >/dev/null 2>&1; then
       nohup gcloud storage cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
-    elif [ `command -v gsutil -eq 0 ]; then
+    elif command -v gsutil >/dev/null 2>&1; then
       nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
     fi
 fi

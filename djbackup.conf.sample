@@ -92,8 +92,9 @@ bucketPath="/"
 # (or the VM's attached service account on Google Compute Engine).
 # A service account is recommended for unattended backups because it isn't tied to a person's login:
 #   1. Create a service account, e.g. djbackup-uploader
-#   2. On this bucket only, grant it "Storage Object Creator" (can add files but can't read, overwrite or delete them).
-#      If uploads fail with a 403 error use "Storage Object User" instead.
+#   2. On this bucket only, grant it "Storage Object Creator" and "Storage Object Viewer".
+#      Together they can add and read files but can't overwrite or delete them, so older backups are protected.
+#      (gcloud looks up the destination before uploading, which needs Viewer's storage.objects.get permission.)
 #   3. Create a JSON key for it, save it here, then: chown root:root <file>; chmod 600 <file>
 #      If key creation is disabled, your organization enforces iam.disableServiceAccountKeyCreation
 #      and an org admin needs to allow it for the project.

@@ -295,8 +295,8 @@ fi
 #Check mode: report on dependencies for enabled features and exit without running a backup
 if [ "$CheckOnly" -eq "1" ]
 then
-  #Test a real upload, since the service account may only be allowed to create files (not list or read them)
-  #Each test file gets a unique name because create-only access can't overwrite
+  #Test a real upload, since that's the only way to prove the account can create files
+  #Each test file gets a unique name because access without delete permission can't overwrite
   if [ "$CloudBK" = "G" ]
   then
     testFile=$(mktemp)

@@ -75,16 +75,32 @@ SecondCopies=0
 #
 ####################################
 # Copy Backup to the cloud
-# Enable Google Cloud Backup 0 = off 1 = on
+# Cloud provider to copy backups to: 0 = off, G = Google Cloud Storage (Azure and AWS planned)
 # NOTE:  This is kicked off in the background so multiple backups will create multiple uploads.
+#        The result of each upload is written to the log when it finishes.
 CloudBK="G"
-# G = Google Cloud
-# NOTE:  This requires the gsutil application from google
+#
+# --- Google Cloud (CloudBK=G) ---
+# NOTE:  This requires the Google Cloud CLI (gcloud). Standalone gsutil is also supported.
 #
 # Bucket Name
 bucket="bucket_name"
-# Path in the Bucket
+# Folder in the Bucket to upload to (leading and trailing slashes are optional, "/" = top of the bucket)
 bucketPath="/"
+#
+# Service account key file used to upload.  Leave empty to use gcloud's existing login
+# (or the VM's attached service account on Google Compute Engine).
+# A service account is recommended for unattended backups because it isn't tied to a person's login:
+#   1. Create a service account, e.g. djbackup-uploader
+#   2. On this bucket only, grant it "Storage Object Creator" (can add files but can't read, overwrite or delete them).
+#      If uploads fail with a 403 error use "Storage Object User" instead.
+#   3. Create a JSON key for it, save it here, then: chown root:root <file>; chmod 600 <file>
+#      If key creation is disabled, your organization enforces iam.disableServiceAccountKeyCreation
+#      and an org admin needs to allow it for the project.
+#   4. Optional: add bucket lifecycle rules to delete old backups, and djbackup-check/ test files after 1 day.
+# NOTE:  /etc/djbackup is included in every backup, so the key is too.  Keep EncryptBackup=1 when uploading.
+# Run "djbackup -k" to test the upload.
+gcsKeyFile=""
 ####################################
 #
 ####################################

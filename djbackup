@@ -1,9 +1,35 @@
 #!/usr/bin/bash
 . /etc/djbackup/djbackup.conf
 
+#Cron runs with a minimal PATH, so add common install locations for cloud tools
+PATH="$PATH:/usr/local/bin:/snap/bin:/usr/lib/google-cloud-sdk/bin:/opt/google-cloud-sdk/bin:$HOME/google-cloud-sdk/bin"
+
 #Returns true if a command is installed
 hasCmd(){
   command -v "$1" >/dev/null 2>&1
+}
+
+#Copy a file to Google Cloud Storage with the configured tool and credentials
+#Parallel composite uploads are off because they need delete permission to clean up their temporary parts
+gcsCopy(){
+  if [ "$gcsTool" = "gcloud" ]
+  then
+    CLOUDSDK_STORAGE_PARALLEL_COMPOSITE_UPLOAD_ENABLED=False \
+      gcloud storage cp ${gcsKeyFile:+--credential-file-override="$gcsKeyFile"} "$1" "$2"
+  elif [ -n "$gcsKeyFile" ]
+  then
+    CLOUDSDK_PASS_CREDENTIALS_TO_GSUTIL=false \
+      gsutil -o "Credentials:gs_service_key_file=$gcsKeyFile" -o "GSUtil:parallel_composite_upload_threshold=0" cp "$1" "$2"
+  else
+    gsutil -o "GSUtil:parallel_composite_upload_threshold=0" cp "$1" "$2"
+  fi
+}
+
+#Run a cloud upload in the background and log the result to the permanent log
+cloudUpload(){
+  local desc="$1"; shift
+  ( if "$@"; then echo "$(date) Cloud upload completed: $desc"
+    else echo "$(date) Cloud upload FAILED: $desc"; fi ) >>"$permLog" 2>&1 &
 }
 
 checkAppUpdate(){
@@ -240,10 +266,24 @@ then
   missingDep rsync "skipping remote copy."
 fi
 
-if [ "$CloudBK" = "G" ] && ! hasCmd gcloud && ! hasCmd gsutil
+if [ "$CloudBK" = "G" ]
 then
-  CloudBK=0
-  missingDep "gcloud/gsutil" "skipping Google Cloud copy."
+  #Prefer gcloud storage, fall back to gsutil for older or standalone installs
+  if hasCmd gcloud && gcloud storage cp --help >/dev/null 2>&1 </dev/null
+  then
+    gcsTool="gcloud"
+  elif hasCmd gsutil
+  then
+    gcsTool="gsutil"
+  else
+    CloudBK=0
+    missingDep "gcloud/gsutil" "skipping Google Cloud copy."
+  fi
+  if [ "$CloudBK" = "G" ] && [ -n "$gcsKeyFile" ] && [ ! -r "$gcsKeyFile" ]
+  then
+    CloudBK=0
+    depWarnings+=("WARNING: Google Cloud key file $gcsKeyFile is missing or unreadable, skipping Google Cloud copy.")
+  fi
 fi
 
 if [ "$EmailReport" -eq "1" ] && ! hasCmd mail
@@ -255,6 +295,19 @@ fi
 #Check mode: report on dependencies for enabled features and exit without running a backup
 if [ "$CheckOnly" -eq "1" ]
 then
+  #Test a real upload, since the service account may only be allowed to create files (not list or read them)
+  #Each test file gets a unique name because create-only access can't overwrite
+  if [ "$CloudBK" = "G" ]
+  then
+    testFile=$(mktemp)
+    echo "djbackup check $(date)" > "$testFile"
+    if ! testOut=$(gcsCopy "$testFile" "gs://$bucket/djbackup-check/$HOSTNAME-$(date +%Y%m%d%H%M%S)-$$" 2>&1 </dev/null)
+    then
+      testErr=$(echo "$testOut" | grep -i -m1 "error")
+      depWarnings+=("WARNING: Cloud upload test to gs://$bucket failed: ${testErr:-$(echo "$testOut" | tail -n1)}")
+    fi
+    rm -f "$testFile"
+  fi
   if [ ${#depErrors[@]} -eq 0 ] && [ ${#depWarnings[@]} -eq 0 ]
   then
     echo "All dependencies for enabled features are installed."
@@ -302,6 +355,8 @@ then
 	TmpLog=$LogFile
 	LogFile="/tmp/tmp.log"
 fi
+#Background jobs that finish after the email is sent write to the real log
+permLog="${TmpLog:-$LogFile}"
 
 #Start of report formating
 echo "*****************************************************************" | tee -a $LogFile
@@ -461,12 +516,16 @@ fi
 if [ "$CloudBK" = "G" ]
 then
     echo "Cloud Backup Starting in background..." | tee -a $LogFile
-    bucketPath=$(echo $bucketPath | sed  '/^\// s///')
-    if command -v gcloud >/dev/null 2>&1; then
-      nohup gcloud storage cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
-    elif command -v gsutil >/dev/null 2>&1; then
-      nohup gsutil cp $OutDir$OutFile gs://$bucket/$bucketPath > /dev/null &
+    #Always name the object explicitly so each backup is its own file, whatever slashes bucketPath has
+    gcsFolder=${bucketPath#/}
+    gcsFolder=${gcsFolder%/}
+    if [ -n "$gcsFolder" ]
+    then
+      gcsDest="gs://$bucket/$gcsFolder/$OutFile"
+    else
+      gcsDest="gs://$bucket/$OutFile"
     fi
+    cloudUpload "$gcsDest" gcsCopy "$OutDir$OutFile" "$gcsDest"
 fi
 
 #Create second local copy
